@@ -2,12 +2,13 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route , Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Accommodation from "./pages/Accomodation";
 import Home from "./pages/Home";
 import ProtectedRoute from "./components/ProtectedRoute"
 
 function Logout() {
   localStorage.clear()
-  return <Navigate to="/login" />
+  return <Navigate to="/" />
 }
 
 function RegisterAndLogout() {
@@ -20,7 +21,7 @@ function App() {
         <Router>
             <Routes>
             <Route
-          path="/"
+          path="/home"
           element={
             <ProtectedRoute>
               <Home />
@@ -30,7 +31,7 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/logout" element={<Logout />} />
                 <Route path="/register" element={<Register />} />
-                <Route path="/" element={<Login />} /> 
+                <Route path="/" element={<Accommodation />} />
             </Routes>
         </Router>
     );
