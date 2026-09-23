@@ -46,8 +46,8 @@ const Results = () => {
       );
 
         setAccommodations(response.data);
-      } catch (err) {
-        console.error("Error fetching accommodations:", err);
+      } catch {
+        alert("Failed to load accommodations. Please try again.");
       } finally {
         setLoading(false);
       }

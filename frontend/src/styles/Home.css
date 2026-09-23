@@ -1,0 +1,66 @@
+.accommodations-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    overflow: hidden;
+  }
+  
+  .accommodations-scroll {
+    display: flex;
+    gap: 1.5rem;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    padding: 1rem 0;
+  }
+  
+  .accommodation-card {
+    flex: 0 0 300px;
+    background: var(--white);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    transition: transform 0.3s ease;
+    text-align: center;
+  }
+  
+  .accommodation-card:hover {
+    transform: translateY(-5px);
+  }
+  
+  .card-header {
+    background: var(--primary-color);
+    color: var(--white);
+    padding: 1rem;
+    font-size: 1.1rem;
+  }
+  
+  .card-content {
+    padding: 1.5rem;
+  }
+  
+  .card-price {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--primary-color);
+  }
+  
+  .card-location {
+    font-size: 0.9rem;
+    color: var(--light-text);
+  }
+  
+  .card-options {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+  
+  .option-tag {
+    background: var(--secondary-color);
+    padding: 0.3rem 0.8rem;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    color: var(--text-color);
+  }
+  

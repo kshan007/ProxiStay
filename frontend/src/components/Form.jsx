@@ -2,7 +2,7 @@ import { useState } from "react";
 import api from "../api";
 import { useNavigate } from "react-router-dom";
 import { ACCESS_TOKEN, REFRESH_TOKEN } from "../constants";
-import "../styles/form.css";
+import "../styles/Form.css";
 
 function Form({ route, method }) {
     const [formData, setFormData] = useState({ username: "", email: "", password: "", phone_number: "" });
@@ -24,8 +24,6 @@ function Form({ route, method }) {
                 ? { username: formData.username, password: formData.password }
                 : { username: formData.username, email: formData.email, phone_number: formData.phone_number, password: formData.password };
 
-            console.log("Submitting Data:", requestData);
-
             const res = await api.post(route, requestData);
                 
             if (method === "login") {
@@ -35,10 +33,8 @@ function Form({ route, method }) {
             } else {
                 navigate("/login");
             }
-        } catch (error) {
-            console.error("Error:", error.response?.data || error.message);
-                alert("Something went wrong. Please try again.");  
-            
+        } catch {
+            alert("Something went wrong. Please try again.");
         } finally {
             setLoading(false);
         }

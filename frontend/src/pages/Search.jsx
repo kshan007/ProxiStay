@@ -1,10 +1,86 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate, useLocation as useRouterLocation } from "react-router-dom";
+import { Link, useLocation as useRouterLocation } from "react-router-dom";
 import api from "../api";
 import "../styles/search.css";
 import { ACCESS_TOKEN } from "../constants";
 
 import Select from "react-select";
+
+// Abort signal that fires after `ms` (works in all modern browsers).
+const timeoutSignal = (ms) => {
+  const controller = new AbortController();
+  setTimeout(() => controller.abort(), ms);
+  return controller.signal;
+};
+
+// Geocode with Nominatim first, fall back to Photon if it fails or is blocked.
+const geocodeLocation = async (query) => {
+  const q = encodeURIComponent(query);
+
+  try {
+    const res = await api.get(
+      `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${q}`,
+      { signal: timeoutSignal(10000) }
+    );
+    const hit = res.data?.[0];
+    if (hit) return { lat: hit.lat, lon: hit.lon };
+  } catch (err) {
+    console.warn("Nominatim geocoding failed, trying Photon:", err?.message || err);
+  }
+
+  try {
+    const res = await api.get(
+      `https://photon.komoot.io/api/?limit=1&q=${q}`,
+      { signal: timeoutSignal(10000) }
+    );
+    const coords = res.data?.features?.[0]?.geometry?.coordinates;
+    if (coords) return { lat: coords[1], lon: coords[0] };
+  } catch (err) {
+    console.warn("Photon geocoding failed:", err?.message || err);
+  }
+
+  return null;
+};
+
+// Overpass mirrors raced in parallel: the canonical server (overpass-api.de)
+// is frequently WAF-blocked or rate-limited, and mirrors vary wildly in speed
+// depending on query size, so the first valid response wins.
+const OVERPASS_ENDPOINTS = [
+  "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter",
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.private.coffee/api/interpreter",
+];
+
+const queryOverpass = async (query) => {
+  const attempts = OVERPASS_ENDPOINTS.map(async (endpoint) => {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      body: query,
+      signal: timeoutSignal(30000),
+    });
+
+    if (!response.ok) {
+      throw new Error(`${endpoint} responded with HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    if (!Array.isArray(data?.elements)) {
+      throw new Error(`${endpoint} returned an unexpected payload`);
+    }
+    return data;
+  });
+
+  try {
+    return await Promise.any(attempts);
+  } catch (err) {
+    const reasons = (err?.errors || [])
+      .map((e) => e?.message || String(e))
+      .join("; ");
+    console.warn("All Overpass mirrors failed:", reasons);
+    throw new Error(`no Overpass server reachable (${reasons || "unknown error"})`);
+  }
+};
 
 const Search = () => {
   const [location, setLocation] = useState("");
@@ -14,7 +90,6 @@ const Search = () => {
   const [type, setType] = useState("");
   const [proximity, setProximity] = useState(15);
   const [accommodations, setAccommodations] = useState([]);
-  const navigate = useNavigate();
   const routerLocation = useRouterLocation();
 
   useEffect(() => {
@@ -24,40 +99,59 @@ const Search = () => {
       setType(accommodationType);
     }
   }, [routerLocation]);
+  
+  
 
   const fetchAccommodations = async () => {
     try {
-      const geoResponse = await api.get(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${location || type}`
-      );
+      const query = location || type;
+      if (!query) {
+        alert("Please enter a college name or select a type.");
+        return;
+      }
 
-      if (geoResponse.data.length === 0) {
+      const coords = await geocodeLocation(query);
+      if (!coords) {
         alert("Location not found. Try again!");
         return;
       }
 
-      const { lat, lon } = geoResponse.data[0];
+      const { lat, lon } = coords;
       const token = localStorage.getItem(ACCESS_TOKEN);
 
       // Step 1: Fetch accommodations from Overpass API
       const overpassType = type.toLowerCase() || "hostel"; // fallback to 'hostel' if no type selected
 
-      const overpassQuery = `
-        [out:json];
-        (
-          node["tourism"="${overpassType}"]
-            (around:${proximity*1000},${lat},${lon});
-        );
-        out body;
-      `;
-      
-      const overpassResponse = await fetch("https://overpass-api.de/api/interpreter", {
-        method: "POST",
-        body: overpassQuery,
-      });
+        let overpassQuery = `
+          [out:json];
+          (
+        `;
 
-      const overpassData = await overpassResponse.json();
-      const nodes = overpassData.elements || [];
+        if (!type || overpassType === "hostel") {
+          overpassQuery += `node(around:${proximity * 1000}, ${lat}, ${lon})["tourism"="hostel"];`;
+        }
+
+        if (!type || overpassType === "apartment") {
+          overpassQuery += `node(around:${proximity * 1000}, ${lat}, ${lon})["building"="apartments"];`;
+        }
+
+        if (!type || overpassType === "pg") {
+          overpassQuery += `node(around:${proximity * 1000}, ${lat}, ${lon})["amenity"="lodging"];`;
+          overpassQuery += `node(around:${proximity * 1000}, ${lat}, ${lon})["building"="dormitory"];`;
+        }
+
+        if (!type || overpassType === "shared room") {
+          overpassQuery += `node(around:${proximity * 1000}, ${lat}, ${lon})["building"="residential"];`;
+        }
+
+        overpassQuery += `
+          );
+          out body;
+        `;
+
+      
+      const overpassData = await queryOverpass(overpassQuery);
+      const nodes = overpassData.elements;
 
       const allAmenities = [
         "Food",
@@ -84,13 +178,13 @@ const Search = () => {
           lat: node.lat,
           lon: node.lon,
           amenities: randomAmenities,
-          budget: 5000 + (i % 3) * 2000,
+          budget: 5000 + (i % 5) * 2000,
           type: node.tags.tourism,
           phone: node.tags.phone || "",
           website: node.tags.website || ""
         };
       });
-      console.log(amenity)
+
       // Step 2: Send accommodations to backend for proximity filtering
       const response = await api.post(
         "/api/search/",
@@ -111,8 +205,11 @@ const Search = () => {
       );
 
       setAccommodations(response.data);
+
     } catch (error) {
-      console.error("Error fetching accommodations:", error);
+      console.error("Accommodation search failed:", error);
+      const reason = error?.message ? ` Reason: ${error.message}` : "";
+      alert(`Failed to fetch accommodations. Please try again.${reason}`);
     }
   };
 
@@ -187,9 +284,11 @@ const Search = () => {
             <p>No accommodations found.</p>
           ) : (
             accommodations.map((acc) => (
-              <Link to="/profile" state={{ accommodationName: acc.name }} key={acc.id} className="accommodation-card">
+              <div key={acc.id} className="accommodation-card">
                 <div className="card-header">
-                  <h3 className="card-name">{acc.name}</h3>
+                <Link to="/profile" state={{ accommodationName: acc.name }} className="card-name">
+                  <h3 >{acc.name}</h3>
+                  </Link>
                 </div>
                 <div className="card-content">
                   <p className="card-price">₹{acc.budget}/month</p>
@@ -209,14 +308,14 @@ const Search = () => {
                   </p>
 
                   <div className="card-options">
-                    <p>Amenities :
+                    <p>Amenities:
                     {acc.amenities.map((a, index) => (
                       <span key={index} className="option-tag">{a}</span>
                     ))}
                     </p>
                   </div>
                 </div>
-              </Link>
+                </div>
             ))
           )}
         </div>

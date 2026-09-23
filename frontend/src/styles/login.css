@@ -1,0 +1,54 @@
+/* Full screen center alignment */
+.login-page {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-radius: 5px; 
+    background: linear-gradient(to bottom right, #fce7f3, #dbeafe, #ede9fe);
+  }
+  
+  /* Smaller login box with more curved corners */
+  .login-box {
+    background: transparent;
+    padding: 0.8rem;
+    border-radius: 5px; 
+    
+    width: 100%;
+    max-width: 320px;
+    height: 300px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+  }
+  
+  /* Login text inside the box */
+  form h2 {
+    color: black;
+    font-size: 22px;
+    text-align: center;
+    text-decoration-color: black;
+    margin-bottom: 1rem;
+  }
+  
+  /* Bottom message */
+  .login-bottom-text {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: black;
+    text-align: center;
+  }
+  
+  .login-bottom-text a {
+    color: #7c3aed;
+    text-decoration: none;
+    font-weight: 500;
+  }
+  
+  .login-bottom-text a:hover {
+    text-decoration: underline;
+  }
+  

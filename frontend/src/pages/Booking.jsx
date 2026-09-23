@@ -38,12 +38,11 @@ const CollectDetails = () => {
   };
 
   const token = localStorage.getItem(ACCESS_TOKEN);
-  console.log(formData)
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await api.post("/api/book/", formData,
+      await api.post("/api/book/", formData,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -52,10 +51,8 @@ const CollectDetails = () => {
       
       ); // Update URL to your backend
       alert("Successfully booked!");
-      console.log(res.data);
       navigate("/")
-    } catch (err) {
-      console.error("Error submitting details:", err);
+    } catch {
       alert("Something went wrong while booking.");
     }
   };

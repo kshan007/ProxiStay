@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { FaBuilding, FaHome, FaBed, FaUsers } from "react-icons/fa";
-import "../styles/Accomodation.css"; //
+import "../styles/Accomodation.css"; 
 import { ACCESS_TOKEN } from "../constants";
 
 function Accommodation() {
@@ -12,36 +12,46 @@ function Accommodation() {
     if (!isLoggedIn) {
       navigate("/login");
     } else {
-      navigate("/home");
+      navigate(`/search?type=${option}`); // Pass type in query params
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem(ACCESS_TOKEN);
+    navigate("/login");
   };
 
   return (
     <div className="accommodation-container">
-      {/* Navbar */}
       <div className="navbar">
         <h1 className="title">ProxiStay</h1>
-        <button className="login-btn" onClick={() => navigate("/login")}>
-          Login / Register
-        </button>
+        {isLoggedIn ? (
+          <button className="login-btn" onClick={handleLogout}>
+            Logout
+          </button>
+        ) : (
+          <button className="login-btn" onClick={() => navigate("/login")}>
+            Login / Register
+          </button>
+        )}
       </div>
 
-      {/* Accommodation Options - Now Horizontal */}
       <div className="options-container">
-        <button className="option-btn" onClick={() => handleSelection("PGs")}>
+        <button className="option-btn" onClick={() => handleSelection("PG")}>
           <FaBuilding size={28} /> <span>PGs</span>
         </button>
-        <button className="option-btn" onClick={() => handleSelection("Apartments")}>
+        <button className="option-btn" onClick={() => handleSelection("Apartment")}>
           <FaHome size={28} /> <span>Apartments</span>
         </button>
-        <button className="option-btn" onClick={() => handleSelection("Hostels")}>
+        <button className="option-btn" onClick={() => handleSelection("Hostel")}>
           <FaBed size={28} /> <span>Hostels</span>
         </button>
-        <button className="option-btn" onClick={() => handleSelection("Shared Rooms")}>
+        <button className="option-btn" onClick={() => handleSelection("Shared Room")}>
           <FaUsers size={28} /> <span>Shared Rooms</span>
         </button>
       </div>
     </div>
   );
 }
-export default Accommodation
+
+export default Accommodation;

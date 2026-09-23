@@ -3,7 +3,11 @@ import { BrowserRouter as Router, Routes, Route , Navigate } from "react-router-
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Accommodation from "./pages/Accomodation";
-import Home from "./pages/Home";
+//import Home from "./pages/Home";
+import Search from "./pages/Search";
+import Results from "./pages/Results";
+import CollectDetails from "./pages/Booking";
+import AccommodationDetails from "./pages/Details";
 import ProtectedRoute from "./components/ProtectedRoute"
 
 function Logout() {
@@ -21,13 +25,13 @@ function App() {
         <Router>
             <Routes>
             <Route
-          path="/home"
+          path="/search"
           element={
-            <ProtectedRoute>
-              <Home />
-            </ProtectedRoute>
+              <Search />
           }
         />
+        <Route path="/profile" element={<ProtectedRoute><CollectDetails /></ProtectedRoute>} />
+        <Route path="/accommodation/:id" element={<AccommodationDetails />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/logout" element={<Logout />} />
                 <Route path="/register" element={<Register />} />
